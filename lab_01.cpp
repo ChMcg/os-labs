@@ -36,6 +36,8 @@ int main(int argc, char* argv[])
     cout << endl;
     cout << "Поток-1 вернул: " << *(int*)status_1 << endl;
     cout << "Поток-2 вернул: " << *(int*)status_2 << endl;
+    free((int*)status_1);
+    free((int*)status_2);
     return 0;
 }
 
