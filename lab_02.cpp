@@ -69,6 +69,10 @@ void* some_p2(void* param)
                 write(1, "2", sizeof("2"));
                 // nanosleep(&tr, nullptr);
             }
+            
+            #ifdef TEST_MUTEX_LOCK
+                pthread_exit(0);
+            #endif
         }
         pthread_mutex_unlock(args->mutex);
         sleep(1);
