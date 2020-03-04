@@ -48,9 +48,10 @@ void* some_p1(void* param)
     timespec tr = {0, 1000*1000*250};
     while(*(bool*)param)
     {
-        // cout << "1";
+        cout << "1";
+        cout.flush();
         // printf("1");
-        write(1, "1", sizeof("1"));
+        // write(1, "1", sizeof("1"));
         cnt++;
         // sleep(1);
         nanosleep(&tr, nullptr);
@@ -68,9 +69,10 @@ void* some_p2(void* param)
     timespec tr = {0, 1000*1000*500};
     while(*(bool*)param)
     {
-        // cout << "2";
+        cout << "2";
+        cout.flush();
         // printf("2");
-        write(1, "2", sizeof("2"));
+        // write(1, "2", sizeof("2"));
         cnt++;
         // sleep(1);
         nanosleep(&tr, nullptr);
