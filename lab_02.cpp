@@ -109,12 +109,12 @@ void* some_p1(void* param)
                     // nanosleep(&tr, nullptr);
                 }
                 
+                pthread_mutex_unlock(args->mutex);
                 #ifdef TEST_MUTEX_LOCK
                     pthread_exit(0);
                 #endif
             }
             else continue;
-            pthread_mutex_unlock(args->mutex);
             sleep(1);        
         #endif // TIMED_LOCK
     }
@@ -186,12 +186,12 @@ void* some_p2(void* param)
                     // nanosleep(&tr, nullptr);
                 }
                 
+                pthread_mutex_unlock(args->mutex);
                 #ifdef TEST_MUTEX_LOCK
                     pthread_exit(0);
                 #endif
             }
             else continue;
-            pthread_mutex_unlock(args->mutex);
             sleep(1);
         #endif // TIMED_LOCK
     }
