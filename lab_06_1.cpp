@@ -6,6 +6,8 @@
 #include <fstream>
 #include <semaphore.h>
 #include <fcntl.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 
@@ -20,11 +22,11 @@ struct p_args
     int memory = 0;
 };
 
-void *func1(void *arg)
+void *some_p1(void *arg)
 {
     cout << "[1] Поток 1 начал работу\n";
     p_args *temp = (p_args *)arg;
-    char *letters = (char *)mmap(0, 1, PROT_WRITE, MAP_SHARED, temp->memory, 0);
+    char *letters = (char*)shmat(temp->memory, NULL, 0644 | IPC_CREAT);
     char pointer = 'A';
     while (temp->work){
         if (pointer == 'D')
@@ -41,35 +43,35 @@ void *func1(void *arg)
     return 0;
 }
 
+
 int main()
 {
-    pthread_t f1;
+    pthread_t my_thread;
     p_args args;
     args.work = true;
     args.semw = sem_open("sem_w", O_CREAT, 0644, 0);
     args.semr = sem_open("sem_r", O_CREAT, 0644, 0); 
     int status = 0;
-    int memory = shm_open("mem", O_CREAT | O_RDWR, 0644);
-    if (memory == -1)
-        perror("shm_open");
+    int shmid = shmget(ftok("mem", 0), 1024, 0644 | IPC_CREAT);
+    if (shmid == -1)
+        perror("shmat");
     else
     {
-        args.memory = memory;
-        ftruncate(memory, 1);
+        args.memory = shmid;
     }
-    status = pthread_create(&f1, 0, func1, &args);
+    status = pthread_create(&my_thread, 0, some_p1, &args);
     if (!status)
         cout << "[1] Поток создан\n";
     else
         cout << "[1] ошибка создания потока: " << status << endl;
     getch();
     args.work = false;
-    pthread_join(f1, 0);
+    pthread_join(my_thread, 0);
     cout << "[1] Первый поток остановлен\n";
     sem_close(args.semw);
     sem_close(args.semr);
     sem_unlink("sem_w");
     sem_unlink("sem_r");
-    close(args.memory);
+    shmctl(shmid, IPC_RMID, NULL);
     return 0;
 }
