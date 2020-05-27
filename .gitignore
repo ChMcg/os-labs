@@ -3,3 +3,4 @@ build
 *.swp
 old
 object_code
+out.txt
