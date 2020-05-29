@@ -2,7 +2,10 @@
 #include <pthread.h>
 #include <iostream>
 #include <fcntl.h>
-#include <mqueue.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
 #include "getch.cpp"
 
 using namespace std;
@@ -10,8 +13,13 @@ using namespace std;
 struct p_args
 {
     bool work;
-    char mqname[20] = "/test_mq";
-    mqd_t mqdes = 0;
+    int msgid;
+    
+};
+
+struct TMessage {
+    long mtype;
+    char buff[256];
 };
 
 void *some_p1(void *arg)
@@ -19,17 +27,27 @@ void *some_p1(void *arg)
     cout << "Поток 1 начал работу" << endl;
     p_args *temp = (p_args *)arg;
     int status;
-    int mess = 999;
+    int data = 0;
+    int len;
+    int msgid = temp->msgid;
     while (temp->work)
     {
-        unsigned int priority = 666;
-        while ((mq_receive(temp->mqdes, (char*)&mess, sizeof(mess), &priority) == -1) && (temp->work))
+        if (data == 4)
+            data = 0;
+        TMessage msg;
+        msg.mtype = 1;
+        memset(msg.buff,0,sizeof(msg.buff));
+        status = msgrcv(msgid,&msg, sizeof(msg.buff), msg.mtype, IPC_NOWAIT);
+        if (status < 0)
         {
-            perror("mq_send");
-            sleep(1);
+            cout << "Получение сообщения не удалось" << endl;
         }
-        if (temp->work)
-            cout << endl << "READ " << mess << " WITH PRIORITY " << priority << endl;
+        else
+        {
+            cout << "Получено: " << msg.buff << endl;
+            /* code */
+        }
+        data += 1;
         sleep(1);
     }
     cout << "Поток 1 закончил работу" << endl;
@@ -43,27 +61,22 @@ int main()
     p_args args;
     args.work = true;
     int status = 0;
-    mq_attr attr;
-    attr.mq_flags = 0;
-    attr.mq_maxmsg = 3;
-    attr.mq_msgsize = 4;
-    attr.mq_curmsgs = 0;
-    status = mq_open(args.mqname, O_CREAT | O_RDWR | O_NONBLOCK, 0644, &attr);
-    if (status == -1)
-        perror("mq_open");
-    else 
+    key_t key = ftok("lab_8",'A');
+    int msgid = msgget(key, 0);
+    if (msgid < 0)
     {
-        args.mqdes = status;
-        status = pthread_create(&my_thread, 0, some_p1, &args);
-        if (!status)
-            cout << "Поток 1 создан\n";
-        else
-            cout << "Ошибка создания потока " << status << endl;
+        msgid = msgget(key,0666 | IPC_CREAT);
     }
+    args.msgid = msgid;
+    status = pthread_create(&my_thread, 0, some_p1, &args);
+    if (!status)
+        cout << "Поток 1 создан\n";
+    else
+        cout << "Ошибка создания потока " << status << endl;
     getch();
     args.work = false;
     pthread_join(my_thread, 0);
     cout << "Поток 1 завершил работу" << endl;
-    mq_close(args.mqdes);
+    // msgctl(msgid, IPC_RMID, NULL);
     return 0;
 }

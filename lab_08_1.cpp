@@ -2,7 +2,9 @@
 #include <pthread.h>
 #include <iostream>
 #include <fcntl.h>
-#include <mqueue.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
 #include "getch.cpp"
 
 using namespace std;
@@ -10,8 +12,12 @@ using namespace std;
 struct p_args
 {
     bool work;
-    char mqname[20] = "/test_mq";
-    mqd_t mqdes = 0;
+    int msgid;
+};
+
+struct TMessage {
+    long mtype;
+    char buff[256];
 };
 
 void *some_p1(void *arg)
@@ -20,18 +26,24 @@ void *some_p1(void *arg)
     p_args *temp = (p_args *)arg;
     int status;
     int data = 0;
+    int len;
+    int msgid = temp->msgid;
     while (temp->work)
     {
         if (data == 4)
             data = 0;
-        while ((mq_send(temp->mqdes, (char *)&data, sizeof(data), data) == -1) && (temp->work))
+        TMessage msg;
+        msg.mtype = 1;
+        int len = sprintf(msg.buff,"hello, %d", data);
+        status = msgsnd(msgid, &msg, len, IPC_NOWAIT);
+        if (status < 0)
         {
-            perror("mq_send");
-            sleep(1);
+            cout << "Сообщение не было отправлено" << endl;
         }
-        if (temp->work)
-            cout << endl << "Записано " << data << " с приоритетом " << data << endl;
-
+        else
+        {
+            cout << "Отправлено: " << data << endl;
+        }
         data += 1;
         sleep(1);
     }
@@ -46,34 +58,28 @@ int main()
     p_args args;
     args.work = true;
     int status = 0;
-    mq_attr attr;
-    attr.mq_flags = 0;
-    attr.mq_maxmsg = 3;
-    attr.mq_msgsize = 4;
-    attr.mq_curmsgs = 0;
-    status = mq_open(args.mqname, O_CREAT | O_RDWR | O_NONBLOCK, 0644, &attr);
-    if (status == -1)
-        perror("mq_open");
-    else 
+    key_t key = ftok("lab_8",'A');
+    int msgid = msgget(key, 0);
+    if (msgid < 0)
     {
-        mq_getattr(status, &attr);
-        cout << endl << "размер сообщения = " << attr.mq_msgsize << endl;
-        cout << endl << "максимальный размер сообщения = " << attr.mq_maxmsg << endl;
-        cout << endl << "mq_flags = " << attr.mq_flags<< endl;
-        cout << endl << "mq_curmsg = " << attr.mq_curmsgs << endl;
-        args.mqdes = status;
-        status = pthread_create(&my_thread, 0, some_p1, &args);
-        if (!status)
-            cout << "Поток 1 создан\n";
-        else
-            cout << "Ошибка создания потока " << status << endl;
+        msgid = msgget(key,0666 | IPC_CREAT);
     }
+    msginfo test;
+    test.msgtql = 0;
+    msgctl(msgid, IPC_INFO, (msqid_ds*)&test);
+    cout << test.msgtql << endl;
+    // cout << test.msg_qbytes << endl;
+    args.msgid = msgid;
+    status = pthread_create(&my_thread, 0, some_p1, &args);
+    if (!status)
+        cout << "Поток 1 создан\n";
+    else
+        cout << "Ошибка создания потока " << status << endl;
+    
     getch();
     args.work = false;
     pthread_join(my_thread, 0);
     cout << "Поток 1 завершил работу" << endl;
-
-    mq_close(args.mqdes);
-    mq_unlink(args.mqname);
+    // msgctl(msgid, IPC_RMID, NULL);
     return 0;
 }
