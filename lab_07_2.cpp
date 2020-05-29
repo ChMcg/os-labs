@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <signal.h>
 
 #include "getch.cpp"
 
@@ -55,11 +56,11 @@ int main()
     pthread_t f1;
     p_args args;
     args.work = true;
-    // signal(SIGPIPE, SIG_IGN);
+    signal(SIGPIPE, SIG_IGN);
     int status = 0;
     status = mkfifo("my_pipe", S_IRUSR| S_IWUSR);
     if (status == -1)
-        perror("mkfifo : ");
+        perror("mkfifo");
     status = pthread_create(&f1, 0, some_p1, &args);
     if (!status)
         cout << "Поток 1 создан\n" << endl;
@@ -69,6 +70,6 @@ int main()
     args.work = false;
     pthread_join(f1, 0);
     cout << "Поток 1 остановлен" << endl;
-    unlink("my_pipe");
+    // unlink("my_pipe");
     return 0;
 }
