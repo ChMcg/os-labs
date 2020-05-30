@@ -29,8 +29,7 @@ struct p_args
 pthread_t waiting_thread, receive_thread, proccess_thread, send_thread;
 
 void* recieve_data(void* arg){
-    // cout << "Function recieve_data started working" << endl;
-    // cout << "Function recieve_data started working" << endl;
+    // my_cout{} << "Function recieve_data started working" << endl;
     p_args* info = (p_args*)arg;
     sending_data temp;
     while(!(info->stop_threads)){
@@ -39,19 +38,19 @@ void* recieve_data(void* arg){
         // memset(&info->address, 0, sizeof(info->address));
         int len = sizeof(info->address);
         if (!(check(recvfrom(info->server_socket_des, &temp, sizeof(temp), 0, (sockaddr *)&info->address, (socklen_t *)&len), "Receiving error"))){
-            cout << "Received data with messege \"" << temp.msg << "\"" << endl;
+            my_cout{} << "Received data with messege \"" << temp.msg << "\"" << endl;
             pthread_mutex_lock(&info->proccess_queue_mutex);
             info->proccess_queue.push(temp);
             pthread_mutex_unlock(&info->proccess_queue_mutex);
         }
         sleep(1);
     }
-    // cout << "Function recieve_data stopped working" << endl;
+    // my_cout{} << "Function recieve_data stopped working" << endl;
     return 0;
 }
 
 void* process_data(void* arg){
-    // cout << "Function process_data started working" << endl;
+    // my_cout{} << "Function process_data started working" << endl;
     p_args* info = (p_args*)arg;
     sending_data temp;
     while(!(info->stop_threads)){
@@ -64,19 +63,19 @@ void* process_data(void* arg){
         temp = info->proccess_queue.front();
         temp.info = sysconf(_SC_STREAM_MAX);
         strncpy(temp.msg, "Processed", 9);
-        cout << "Data processed" << endl;
+        my_cout{} << "Data processed" << endl;
         pthread_mutex_lock(&info->send_queue_mutex);
         info->send_queue.push(temp);
         pthread_mutex_unlock(&info->send_queue_mutex);
         info->proccess_queue.pop();
         pthread_mutex_unlock(&info->proccess_queue_mutex);
     }
-    // cout << "Function process_data stopped working" << endl;
+    // my_cout{} << "Function process_data stopped working" << endl;
     return 0;
 }
 
 void* send_data(void* arg){
-    // cout << "Function send_data started working" << endl;
+    // my_cout{} << "Function send_data started working" << endl;
     p_args* info = (p_args*)arg;
     while(!(info->stop_threads)){
         pthread_mutex_lock(&info->send_queue_mutex);
@@ -85,18 +84,18 @@ void* send_data(void* arg){
             continue;
         }
         if (!(check(sendto(info->server_socket_des, &info->send_queue.front(), sizeof(sending_data), 0, (sockaddr *)&info->address, sizeof(info->address)), "Sending error"))){
-            cout << "Response sent successfuly" << endl;
+            my_cout{} << "Response sent successfuly" << endl;
             info->send_queue.pop();
         }
         pthread_mutex_unlock(&info->send_queue_mutex);
         sleep(1);
     }
-    // cout << "Function send_data stopped working" << endl;
+    // my_cout{} << "Function send_data stopped working" << endl;
     return 0;
 }
 
 void* wait_connections(void* arg){
-    // cout << "Function wait_connections started working" << endl;
+    // my_cout{} << "Function wait_connections started working" << endl;
     p_args* info = (p_args*)arg;
     int temp_status;
     int adrlen = sizeof(info->address);
@@ -105,17 +104,17 @@ void* wait_connections(void* arg){
         if (!(check(pthread_create(&receive_thread, 0, recieve_data, arg), "Receive pthread_create")) &&
                !(check(pthread_create(&proccess_thread, 0, process_data, arg), "Proccess pthread_create")) &&
                !(check(pthread_create(&send_thread, 0, send_data, arg), "Send pthread_create")))
-            cout << "Creation success" << endl;
+            my_cout{} << "Creation success" << endl;
         break;
 
         sleep(1);
     }
-    // cout << "Function wait_connections stopped working" << endl;
+    // my_cout{} << "Function wait_connections stopped working" << endl;
     return 0;
 }
 
 int main(){
-    cout.setf(ios::unitbuf);
+    my_cout{}.setf(ios::unitbuf);
     int temp_status;
     p_args args;
 
@@ -130,12 +129,12 @@ int main(){
         args.address.sin_port = htons( 8000 ); 
         // args.address.sin_port = htons( 8880 ); 
         if (!(check(bind(args.server_socket_des, (struct sockaddr *)&args.address,  sizeof(args.address)), "Bind failed"))) { 
-            cout << "Binded successfuly" << endl;
+            my_cout{} << "Binded successfuly" << endl;
         } 
     }
 
     if (!(check(pthread_create(&waiting_thread, 0, wait_connections, &args), "Waiting thread pthread_create")))
-        cout << "Waiting thread created" << endl;
+        my_cout{} << "Waiting thread created" << endl;
     
     getch();
     args.stop_threads = true;
