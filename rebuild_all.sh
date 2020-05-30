@@ -11,7 +11,7 @@
 # g++ lab_09_1.cpp -o build/lab_09_1 -lpthread -lrt
 # g++ lab_09_2.cpp -o build/lab_09_2 -lpthread -lrt
 
-f=`find -name \*.cpp | grep -v 'old' | grep -v 'getch.cpp' | sort`
+f=`find -name \*.cpp | grep -v 'old' | grep -v 'getch.cpp' | grep -v 'config.cpp' | sort`
 
 if [ `mkdir -p object_code` ]; then
 	echo "./object_code created"
